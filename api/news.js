@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  // Enable CORS
+  // Enable CORS for all origins
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -12,13 +12,16 @@ export default async function handler(req, res) {
 
   // Only allow GET requests
   if (req.method !== 'GET') {
-    res.status(405).json({ error: 'Method not allowed' });
+    res.status(405).json({ 
+      error: 'Method not allowed',
+      message: 'This endpoint only accepts GET requests'
+    });
     return;
   }
 
   const { country = 'us', topic = 'general' } = req.query;
   
-  // NewsAPI key
+  // NewsAPI key - replace with your actual key
   const NEWSAPI_KEY = '1d3d97c541964b1694ecc20e4f041750';
   
   try {
@@ -43,10 +46,10 @@ export default async function handler(req, res) {
     }
     
     if (!data.articles || data.articles.length === 0) {
-      throw new Error('No articles found');
+      throw new Error('No articles found for the specified criteria');
     }
     
-    // Find the best article
+    // Find the best article (with content and image)
     for (const article of data.articles) {
       if (article.content && 
           article.urlToImage && 
@@ -54,42 +57,51 @@ export default async function handler(req, res) {
           article.title && 
           article.description) {
         
-        const result = {
-          title: article.title,
-          link: article.url,
-          pubDate: article.publishedAt,
-          author: article.source.name,
-          full_content: article.content || article.description,
-          image: article.urlToImage,
-          country: country,
-          topic: topic,
-          success: true
-        };
+        const now = new Date();
+        const articleDate = new Date(article.publishedAt);
+        const hoursDiff = (now - articleDate) / (1000 * 60 * 60);
         
-        console.log(`✅ Article found: ${result.title}`);
-        res.status(200).json(result);
-        return;
+        // Only return articles from last 48 hours
+        if (hoursDiff <= 48) {
+          const result = {
+            title: article.title,
+            link: article.url,
+            pubDate: article.publishedAt,
+            author: article.source?.name || 'News Source',
+            full_content: article.content || article.description,
+            image: article.urlToImage,
+            country: country,
+            topic: topic,
+            success: true,
+            timestamp: new Date().toISOString()
+          };
+          
+          console.log(`✅ Article found: ${result.title}`);
+          res.status(200).json(result);
+          return;
+        }
       }
     }
     
-    throw new Error('No valid articles found');
+    throw new Error('No recent articles with sufficient content found');
     
   } catch (error) {
     console.error('❌ Backend error:', error.message);
     
-    // Return fallback article
+    // Return fallback article with error info
     const fallbackArticle = {
-      title: "Breaking: Latest Technology and Innovation News",
+      title: "Breaking: Latest Global News and Technology Updates",
       link: "https://newsapi.org",
       pubDate: new Date().toISOString(),
       author: "Global News Network",
-      full_content: "Stay informed with the latest developments in technology, business, and innovation. Our platform brings you breaking news and in-depth analysis from trusted sources worldwide. From cutting-edge tech breakthroughs to market trends, we keep you connected to what matters most in today's fast-paced digital landscape.",
-      image: "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&h=400&fit=crop",
+      full_content: "Stay informed with the latest developments in technology, business, and innovation worldwide. Our comprehensive coverage brings you breaking news, in-depth analysis, and expert insights from trusted sources across the globe. From cutting-edge technological breakthroughs to significant market movements, we ensure you stay connected to the stories that matter most in today's rapidly evolving digital landscape.",
+      image: "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&h=400&fit=crop&auto=format",
       country: country,
       topic: topic,
       success: false,
+      fallback: true,
       debug_error: error.message,
-      fallback: true
+      timestamp: new Date().toISOString()
     };
     
     res.status(200).json(fallbackArticle);
