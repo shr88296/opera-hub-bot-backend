@@ -1,208 +1,101 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>Opera Hub Bot Backend</title>
-    <meta charset="utf-8">
 </head>
 <body>
     <script>
-        // Sample articles for different topics and countries
-        const sampleArticles = {
-            technology: [
-                {
-                    title: "New Technology Breakthrough Changes Industry",
-                    link: "https://example.com/tech1",
-                    author: "Tech News",
-                    content: "Scientists have developed a new technology that promises to revolutionize the industry. This breakthrough could change how we approach everyday problems and open up new possibilities for future innovations."
-                },
-                {
-                    title: "AI Advances Continue to Impress Experts",
-                    link: "https://example.com/tech2",
-                    author: "AI Journal",
-                    content: "Artificial intelligence continues to make strides in various fields. Recent developments show that AI is becoming more sophisticated and capable of handling complex tasks that were previously thought impossible."
-                },
-                {
-                    title: "Quantum Computing Reaches New Milestone",
-                    link: "https://example.com/tech3",
-                    author: "Science Daily",
-                    content: "Researchers have achieved a new milestone in quantum computing, bringing us one step closer to practical quantum computers that could solve problems beyond the reach of classical computers."
-                }
-            ],
-            business: [
-                {
-                    title: "Markets Show Positive Trends This Quarter",
-                    link: "https://example.com/business1",
-                    author: "Financial Times",
-                    content: "Financial markets have shown remarkable resilience this quarter, with major indices posting gains. Analysts attribute this to strong corporate earnings and positive economic indicators."
-                },
-                {
-                    title: "New Startup Raises Record Funding",
-                    link: "https://example.com/business2",
-                    author: "Business Weekly",
-                    content: "A promising startup in the technology sector has raised record funding from investors. The company plans to use these funds to expand its operations and develop new products."
-                },
-                {
-                    title: "Global Trade Reaches New Heights",
-                    link: "https://example.com/business3",
-                    author: "Economic Review",
-                    content: "International trade has reached unprecedented levels this year, with countries around the world benefiting from increased economic cooperation and reduced trade barriers."
-                }
-            ],
-            sports: [
-                {
-                    title: "Local Team Wins Championship Game",
-                    link: "https://example.com/sports1",
-                    author: "Sports Network",
-                    content: "The local team has won the championship in a thrilling game that went into overtime. Fans celebrated throughout the city as players hoisted the trophy."
-                },
-                {
-                    title: "Athlete Breaks World Record",
-                    link: "https://example.com/sports2",
-                    author: "Olympic News",
-                    content: "In an incredible display of athleticism, a competitor has broken the world record in their event. This achievement comes after years of dedicated training and preparation."
-                },
-                {
-                    title: "Major Tournament Announces New Format",
-                    link: "https://example.com/sports3",
-                    author: "Sports Central",
-                    content: "Organizers of a major international tournament have announced significant changes to the format, aimed at making the competition more exciting and accessible to fans worldwide."
-                }
-            ],
-            entertainment: [
-                {
-                    title: "Blockbuster Movie Breaks Box Office Records",
-                    link: "https://example.com/entertainment1",
-                    author: "Entertainment Weekly",
-                    content: "The latest blockbuster movie has shattered box office records in its opening weekend, drawing millions of viewers to theaters worldwide and setting new benchmarks for the industry."
-                },
-                {
-                    title: "Music Festival Announces Star-Studded Lineup",
-                    link: "https://example.com/entertainment2",
-                    author: "Music Today",
-                    content: "One of the world's most popular music festivals has announced its lineup for this year, featuring some of the biggest names in the industry across multiple genres."
-                },
-                {
-                    title: "Streaming Service Releases Hit Original Series",
-                    link: "https://example.com/entertainment3",
-                    author: "TV Guide",
-                    content: "A major streaming service has released a new original series that has quickly become a cultural phenomenon, generating millions of views and sparking conversations across social media."
-                }
-            ],
-            general: [
-                {
-                    title: "Community Comes Together for Local Cause",
-                    link: "https://example.com/general1",
-                    author: "Local News",
-                    content: "Residents have rallied together to support a local cause, demonstrating the strong sense of community spirit that characterizes the area. The event has raised significant funds and awareness."
-                },
-                {
-                    title: "New Initiative Aims to Improve Public Spaces",
-                    link: "https://example.com/general2",
-                    author: "City Times",
-                    content: "City officials have announced a new initiative to improve public spaces, including parks, community centers, and recreational facilities. The project is expected to benefit residents of all ages."
-                },
-                {
-                    title: "Education Program Shows Promising Results",
-                    link: "https://example.com/general3",
-                    author: "Education Today",
-                    content: "A new educational program aimed at improving student outcomes has shown promising results in its first year, with participants demonstrating significant improvements in key metrics."
-                }
-            ]
-        };
-
-        function getQueryParams() {
-            const params = {};
-            const queryString = window.location.search.substring(1);
-            const pairs = queryString.split('&');
-            
-            for (let i = 0; i < pairs.length; i++) {
-                const pair = pairs[i].split('=');
-                params[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
-            }
-            
-            return params;
+        const NEWSAPI_KEYS = [
+            '1d3d97c541964b1694ecc20e4f041750',
+            // Add more keys here for rotation
+        ];
+        
+        function getRandomApiKey() {
+            return NEWSAPI_KEYS[Math.floor(Math.random() * NEWSAPI_KEYS.length)];
         }
-
-        function generateArticle() {
-            const params = getQueryParams();
-            const country = params.country || 'us';
-            const topic = params.topic || 'general';
-            const city = params.city || '';
+        
+        async function fetchNews() {
+            const params = new URLSearchParams(window.location.search);
+            const country = params.get('country') || 'us';
+            const topic = params.get('topic') || 'general';
+            const format = params.get('format');
             
-            console.log(`Generating article for country: ${country}, topic: ${topic}, city: ${city}`);
-            
-            // Get articles for the topic, or default to general
-            const topicArticles = sampleArticles[topic] || sampleArticles.general;
-            
-            // Select a random article from the topic
-            const article = topicArticles[Math.floor(Math.random() * topicArticles.length)];
-            
-            // Customize the article based on location
-            let customizedContent = article.content;
-            if (city) {
-                customizedContent = `In ${city}, ${customizedContent.charAt(0).toLowerCase() + customizedContent.slice(1)}`;
+            try {
+                const apiKey = getRandomApiKey();
+                const newsUrl = `https://newsapi.org/v2/top-headlines?country=${country}&category=${topic.toLowerCase()}&apiKey=${apiKey}&pageSize=10&sortBy=publishedAt`;
+                
+                const response = await fetch(newsUrl);
+                const data = await response.json();
+                
+                if (data.status === 'error') {
+                    throw new Error(data.message);
+                }
+                
+                if (!data.articles || data.articles.length === 0) {
+                    throw new Error('No articles found');
+                }
+                
+                // Get the most recent article with content and image
+                for (const article of data.articles) {
+                    if (article.content && article.urlToImage && article.content !== '[Removed]') {
+                        const now = new Date();
+                        const articleDate = new Date(article.publishedAt);
+                        const hoursDiff = (now - articleDate) / (1000 * 60 * 60);
+                        
+                        // Only return articles from last 24 hours
+                        if (hoursDiff <= 24) {
+                            const result = {
+                                title: article.title,
+                                link: article.url,
+                                pubDate: article.publishedAt,
+                                author: article.source.name,
+                                full_content: article.content || article.description,
+                                image: article.urlToImage,
+                                country: country,
+                                topic: topic
+                            };
+                            
+                            if (format === 'json') {
+                                document.body.innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+                                return;
+                            } else {
+                                window.newsData = result;
+                                document.body.innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+                                return;
+                            }
+                        }
+                    }
+                }
+                
+                throw new Error('No recent articles with sufficient content found');
+                
+            } catch (error) {
+                const fallbackArticle = {
+                    title: "Latest Technology News Update",
+                    link: "https://newsapi.org",
+                    pubDate: new Date().toISOString(),
+                    author: "News Service",
+                    full_content: "Stay updated with the latest developments in technology and innovation. This content serves as a placeholder while we fetch the most recent news updates.",
+                    image: "https://picsum.photos/seed/tech/640/360.jpg",
+                    debug_error: error.message
+                };
+                
+                if (format === 'json') {
+                    document.body.innerHTML = `<pre>${JSON.stringify(fallbackArticle, null, 2)}</pre>`;
+                } else {
+                    window.newsData = fallbackArticle;
+                    document.body.innerHTML = `<pre>${JSON.stringify(fallbackArticle, null, 2)}</pre>`;
+                }
             }
-            
-            const countryToName = {
-                "ng": "Nigeria",
-                "ke": "Kenya",
-                "za": "South Africa",
-                "gh": "Ghana",
-                "ug": "Uganda",
-                "tz": "Tanzania",
-                "mw": "Malawi",
-                "ci": "Côte d'Ivoire",
-                "in": "India",
-                "us": "United States"
-            };
-            
-            const countryName = countryToName[country] || country;
-            
-            return {
-                title: article.title,
-                link: article.link,
-                pubDate: new Date().toISOString(),
-                author: article.author,
-                full_content: customizedContent,
-                image: `https://picsum.photos/seed/${Date.now()}/640/360.jpg`,
-                country: countryName,
-                city: city,
-                debug_info: "Using sample articles - NewsAPI not implemented"
-            };
         }
-
-        // Handle API requests
-        window.addEventListener('DOMContentLoaded', () => {
-            const params = getQueryParams();
-            
-            if (params.format === 'json') {
-                // Return JSON response
-                const article = generateArticle();
-                document.body.innerHTML = `<pre>${JSON.stringify(article, null, 2)}</pre>`;
-            } else {
-                // Return HTML page with instructions
-                document.body.innerHTML = `
-                    <h1>Opera Hub Bot Backend</h1>
-                    <p>This is a working backend for the Opera Hub Bot.</p>
-                    <p>To test the API, visit: <code>${window.location.href}?format=json&country=us&topic=technology</code></p>
-                    <h2>Test Article:</h2>
-                    <pre>${JSON.stringify(generateArticle(), null, 2)}</pre>
-                `;
-            }
-        });
-
-        // Handle messages from Chrome extension
-        window.addEventListener('message', async (event) => {
-            if (event.data.type === 'FETCH_NEWS') {
-                console.log('Received FETCH_NEWS request:', event.data);
-                const result = generateArticle();
-                console.log('Sending NEWS_RESPONSE:', result);
-                event.source.postMessage({
-                    type: 'NEWS_RESPONSE',
-                    data: result
-                }, '*');
-            }
-        });
+        
+        // Auto-fetch when page loads
+        if (window.location.search) {
+            fetchNews();
+        } else {
+            document.body.innerHTML = '<h1>Opera Hub Bot Backend</h1><p>Add query parameters: ?country=us&topic=technology&format=json</p>';
+        }
     </script>
 </body>
 </html>
